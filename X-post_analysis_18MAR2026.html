@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><title>Twitter Analysis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+
+  :root{
+    --bg:#ffffff; --card:#ffffff; --soft:#f7f9fc; --soft2:#e5e8ef; --text:#072447; --muted:#54698d;
+    --pos:#2ec27e; --neg:#ff5c5c; --neu:#f0b429; --chip:#e5e8ef; --chipBorder:#d0d6e5; --shadow:0 10px 30px rgba(0,0,0,.10);
+  }
+
+  *{box-sizing:border-box; font-family: 'Plus Jakarta Sans', sans-serif;}
+
+  body{
+    margin:0;
+    background:#ffffff;
+    color:var(--text);
+  }
+
+  .wrap{max-width:1150px;margin:34px auto;padding:0 20px;}
+
+
+  .title{font-size:28px; font-weight:800; letter-spacing:.4px; margin:0 0 6px; color:#072447;}
+  .muted{color:var(--muted)}
+  .section{margin-top:24px;}
+
+  table{border-collapse:collapse;width:100%;color:#072447;margin-top:10px;}
+  th,td{border:1px solid #e5e8ef;padding:8px;font-size:13px;vertical-align:top}
+  th{background:#f0f2f8; color:#072447;}
+    .summary-table td{ font-weight:600; } 
+
+  .grid{display:grid; grid-template-columns: 1fr 1fr; gap:18px;}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr; } }
+
+  .bank-head{margin:24px 0 6px; font-size:22px; font-weight:800; color:#072447}
+
+  .post{
+    position:relative; /* for corner logo */
+    background: var(--card);
+    border:1px solid var(--soft2); border-radius:18px; padding:16px; box-shadow:var(--shadow);
+    transition:transform .2s ease, border-color .2s ease; color:var(--text);
+  }
+  .post-neg{
+    background:#fff0f0;
+    border:1px solid #ff5c5c;
+    color:#072447;
+  }
+  .post:hover{ transform: translateY(-2px); border-color:#b0bcd4; }
+
+  /* Add corner logo (top-right) */
+  .post::after {
+    content:"";
+    position:absolute;
+    top:10px; right:10px;
+    width:28px; height:28px;
+    background:url('corner_logo.png') no-repeat center center;
+    background-size:contain;
+    opacity:0.7;
+  }
+
+  .head{display:flex; gap:12px; align-items:flex-start; margin-bottom:8px;}
+  .meta{display:flex; flex-direction:column; gap:6px;}
+  .name, .bank, .date { color:#072447; font-size:13px; }
+  .text-summary{ color:#072447; line-height:1.55; }
+
+  mark{ background:#ffeb3b; color:#000; padding:0 3px; border-radius:4px; }
+
+  .badges{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;}
+  .badge{font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid #d0d6e5; background:#f2f4f8; color:#072447;}
+  .badge-pos{border-color:#1f7a55; background:#e6f8f0; color:#1f7a55;}
+  .badge-neg{border-color:#ff5c5c; background:#d7d2cb; color:#ff0000;}
+  .badge-neu{border-color:#f0b429; background:#fff7e0; color:#b37400;}
+
+  .stats{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
+  .chip{background:#f7f9fc; border:1px solid var(--chipBorder); color:#072447;
+        border-radius:10px; padding:6px 10px; font-size:12px;}
+  .tag{padding:3px 8px; border-radius:999px; border:1px dashed #d0d6e5; color:#54698d; font-size:12px;}
+  .hr{border:0;height:1px;background:#e5e8ef; margin:20px 0;}
+
+  .highlights { margin: 6px 0 10px; padding-left: 18px; }
+  .highlights li { margin: 2px 0; }
+  .hl-title { margin-top: 6px; font-weight: 700; color: #072447; }
+
+    /* ---------- Tables ---------- */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      color: #072447;
+      margin-top: 10px;
+    }
+    
+    th, td {
+      border: 1px solid var(--soft2);
+      padding: 10px 8px;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    
+    /* Header style */
+    .summary-table th {
+      background: #072447;   /* navy header */
+      color: #ffffff;        /* white text */
+      font-weight: 700;
+      text-align: center;    /* center align all headers */
+    }
+    
+    /* Row style */
+    .summary-table td {
+      font-weight: 600;
+      background: #e4e1dc;   /* table rows background */
+      text-align: center;    /* center align all cells by default */
+    }
+
+    /* Override for Bank Name column (first col only) */
+    .summary-table td:first-child,
+    .summary-table th:first-child {
+      text-align: left;      /* keep Bank Name left aligned */
+      padding-left: 14px;    /* add breathing space */
+    }
+    /* Negative Post Card */
+    .post-neg {
+      background: #DAD6D0;        /* new background */
+      border: 1px solid #b23b3b;  /* keep a subtle red border (optional) */
+      color: #072447;             /* ensure text stays readable */
+    }
+
+    /* --- HERO fix: force 2-col grid with 3 stacked rows --- */
+        
+/* GRID: 2 columns, 3 rows; logo spans all 3 rows */
+.hero-grid{
+  display:grid;
+  grid-template-columns: auto 1fr;  /* left = logo, right = text column */
+  grid-template-rows: auto auto auto;
+  column-gap: 24px;
+  align-items:center;               /* align items vertically in their rows */
+  justify-content:center;           /* center whole block on the page */
+  margin: 16px 0 24px;
+}
+
+/* LOGO: small, fixed height so it never forces wrapping */
+.hero-logo{
+  grid-row: 1 / span 3;             /* span all three rows */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.hero-logo img{
+  height: 60px;                     /* ↓ reduce if needed (e.g., 100px) */
+  width: auto;
+  display:block;
+}
+
+/* Each row on the right is its own centered line */
+.hero-row{
+  display:flex;
+  justify-content:center;            /* center text horizontally in the row */
+  text-align:center;
+  color:#0a2540;
+}
+
+.hero-row h1{
+  margin:0 0 4px 0;
+  font-size: 28px;                   /* adjust to taste */
+  font-weight:800;
+  line-height:1.2;
+}
+.hero-row p{
+  margin: 2px 0;
+  font-size: 16px;
+  line-height:1.35;
+}
+
+/* Optional: stack on small screens */
+@media (max-width: 680px){
+  .hero-grid{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    row-gap: 10px;
+    justify-content:stretch;
+  }
+  .hero-logo{ grid-row:auto; }
+  .hero-row{ justify-content:center; }
+}
+
+.genai-badge {
+  position: absolute;
+  top: 60px;
+  right: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #072447;        /* navy */
+  background: #f0f2f8;   /* light gray background */
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.hero-grid {
+  position: relative; /* so badge aligns inside hero block */
+}
+
+.post-link {
+  margin-top: 8px;
+  text-align: right;          /* pushes the link to the right */
+  display: block;             /* full width row */
+}
+
+.post-link a {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0a66c2;
+  text-decoration: none;
+}
+
+.post-link a:hover {
+  text-decoration: underline;
+}
+
+
+
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    
+<div class="hero-grid">
+  <div class="hero-logo">
+    <img src="data:image/png;base64,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" alt="ENBD" class="logo">
+  </div>
+
+  <div class="genai-badge">⚡Powered by Gen AI</div>
+
+  <div class="hero-row r1">
+    <h1>Twitter Engagement Analysis for Banks</h1>
+  </div>
+
+  <div class="hero-row r2">
+    <p>Duration: 15MAR2026 to 18MAR2026 08:50:00</p>
+  </div>
+
+  <div class="hero-row r3">
+    <p>Number of Banks considered for Analysis: 2</p>
+  </div>
+</div>
+
+    
+<div class="section">
+  <h2>Part 1: Bank Posts Overview</h2>
+ 
+  <table border="1" class="dataframe summary-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Bank Name</th>
+      <th>Posts By Bank</th>
+      <th>Total likes for Bank Posts</th>
+      <th>Total comments for Bank Posts</th>
+      <th>Total retweets for Bank Posts</th>
+      <th>Bank posts with 100+ likes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Emirates NBD Bank (ENBD)</td>
+      <td>12</td>
+      <td>7</td>
+      <td>6</td>
+      <td>1</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>Emirates Islamic Bank (EIB)</td>
+      <td>6</td>
+      <td>3</td>
+      <td>2</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+    
+<div class="section">
+  <h2>Part 2: Customer's mentioned Bank Posts Overview</h2>
+ 
+  <table border="1" class="dataframe summary-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Bank Name</th>
+      <th>Customer's post Mentioning Bank</th>
+      <th>Negative Post</th>
+      <th>Total likes for Cust Posts</th>
+      <th>Total comments for Cust Posts</th>
+      <th>Total retwite for Cust Posts</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Emirates NBD Bank (ENBD)</td>
+      <td>61</td>
+      <td>11</td>
+      <td>1257</td>
+      <td>95</td>
+      <td>259</td>
+    </tr>
+    <tr>
+      <td>Emirates Islamic Bank (EIB)</td>
+      <td>2</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+    <h2 class='section'>Part 3: Negative Posts by Customer</h2>
+<h3 class='bank-head'>Negative Posts — Emirates NBD Bank (ENBD)</h3>
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> rishab_khatri</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 18-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> Absolutely unacceptable service. Your ENBD partnership site was down, forcing me to email a drop-off request (Ticket <mark>#4773509716928</mark>). I promptly shared all details, and it’s been 72+ hours with ZERO response. Pathetic experience.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Your ENBD partnership site was down, forcing me to email a drop-off request (Ticket #4773509716928).</li><li>I promptly shared all details, and it’s been 72+ hours with ZERO response.</li><li>Absolutely unacceptable service.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/rishab_khatri/status/2034108350502420956" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> nishathn</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> I had a genuine doubt @EmiratesNBD_AE. How exactly does the queuing system work in your branches? I was in one of your branches and had to wait for more than half an hour just to get some change, with later numbers being called ahead.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>I was in one of your branches and had to wait for more than half an hour just to get some change, with later numbers being called ahead.</li><li>How exactly does the queuing system work in your branches?</li><li>I had a genuine doubt @EmiratesNBD_AE.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/nishathn/status/2033965067801399651" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> thepsychopoetix</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> My fully verified account is restricted after a $2,000 deposit. I’ve sent my ENBD statements but I’m being ignored by &#x27;Sofia.&#x27; I need my funds released immediately. Ticket <mark>#33665406</mark>. 
+
+This feels like a complete setup and robbery.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>My fully verified account is restricted after a $2,000 deposit.</li><li>I’ve sent my ENBD statements but I’m being ignored by &#x27;Sofia.&#x27; I need my funds released immediately.</li><li>This feels like a complete setup and robbery.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 3</div>
+        <div class="chip">💬 Comments: 3</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/thepsychopoetix/status/2033893949555835122" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> pkatariasocial</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> IDBI Bank privatization deal CANCELLED!
+
+Bids from Fairfax Financial Holdings Ltd. and Emirates NBD fell short of government expectations.
+
+Shares crashed 16%
+Valuation gap, global uncertainty, and Reserve Bank of India delays.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Shares crashed 16% Valuation gap, global uncertainty, and Reserve Bank of India delays.</li><li>IDBI Bank privatization deal CANCELLED!</li><li>and Emirates NBD fell short of government expectations.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/pkatariasocial/status/2033866739021451531" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> AIGINTFI</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> Dubai&#x27;s stock index has dropped approximately 21% since February 28, from 7,000 to around 5,500, marking the sharpest selloff in the Gulf since 2022, with Emaar Properties and Emirates NBD leading the losses.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Dubai&#x27;s stock index has dropped approximately 21% since February 28, from 7,000 to around 5,500, marking the sharpest se…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/AIGINTFI/status/2033735826471830005" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> investwithpaul</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> IDBI Bank fell 17% because the government has been trying to sell almost 60% of its stake for the last 5 years. Many investors were waiting for this as a point of rapid growth after new investors came in. However, the deal fell through as Fairfox India Holdings and Emirates NBD bid much lower than what the government expected.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>IDBI Bank fell 17% because the government has been trying to sell almost 60% of its stake for the last 5 years.</li><li>However, the deal fell through as Fairfox India Holdings and Emirates NBD bid much lower than what the government expected.</li><li>Many investors were waiting for this as a point of rapid growth after new investors came in.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 1</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/investwithpaul/status/2033616440646090883" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> MiddleEastMnt</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> Dubai’s main stock index slipped into bear-market territory on Monday after falling more than 20% from its February peak as escalating regional tensions triggered broad selling across banking, real estate, and travel-linked shares, Anadolu reports.
+
+The Dubai Financial Market General Index reached a recent high of 6,785.48 on Feb. 10 and later dropped to 5,391.98 on March 13, according to Dubai Financial Market data.
+
+That represents a decline of about 20.5%, meeting the widely used definition of a bear market.
+
+Selling pressure persisted Monday, with Reuters reporting that Dubai’s benchmark fell another 2%, led by a 3% drop in Emaar Properties and a 1.4% decline in Emirates NBD as investors reacted to rising geopolitical uncertainty in the Gulf.
+
+The index has fallen more than 18% since the conflict began.
+
+The downturn has been concentrated in sectors most exposed to domestic economic activity and investor sentiment, particularly banking and real estate, while aviation and tourism-linked stocks have also come under pressure as security concerns cloud the outlook for travel, trade, and business activity.
+
+Dubai’s market had already posted sharp losses earlier this month, including a 4.7% drop when trading resumed after a two-day halt and a further 3.2% decline later that week, with Emaar, Emirates NBD, and Air Arabia among the main contributors to the fall.
+
+Further weakness followed last week as the conflict deepened.
+
+On March 13, Dubai’s index fell 1.7%, marking its second-largest weekly decline in six years, again led by losses in banking and property shares.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>On March 13, Dubai’s index fell 1.7%, marking its second-largest weekly decline in six years, again led by losses in banking and property shares.</li><li>10 and later dropped to 5,391.98 on March 13, according to Dubai Financial Market data.</li><li>The Dubai Financial Market General Index reached a recent high of 6,785.48 on Feb.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 15</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 8</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/MiddleEastMnt/status/2033581239311958293" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> easynut</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> I understood. That did not work well for me. ENBD took ages to verify my claim and finally asked me to take a credit note from the airlines.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>ENBD took ages to verify my claim and finally asked me to take a credit note from the airlines.</li><li>That did not work well for me.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/easynut/status/2033571685845348792" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> AbhishekSu38296</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> The government&#x27;s plan to sell a combined 60.7% stake in IDBI Bank has stalled after bids from players like Fairfax and Emirates NBD fell below the reserve price. This setback triggered a 15-16% crash in IDBI&#x27;s stock and creates a massive hole in the government&#x27;s ₹47,000 crore disinvestment target.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>This setback triggered a 15-16% crash in IDBI&#x27;s stock and creates a massive hole in the government&#x27;s ₹47,000 crore disinvestment target.</li><li>The government&#x27;s plan to sell a combined 60.7% stake in IDBI Bank has stalled after bids from players like Fairfax and Emirates NBD fell below the reserve price.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/AbhishekSu38296/status/2033560625826419038" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> lubna_patel_</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> I raised a query and it was closed without resolution - I made a payment to my credit card on 6th March from EmiratesNBD - it still hasn’t reflected. Any idea why?</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>I raised a query and it was closed without resolution - I made a payment to my credit card on 6th March from EmiratesNBD - it still hasn’t reflected.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/lubna_patel_/status/2033536700224262499" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> jakesprime</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> The Emirates NBD deal announcement, for a major 3 billion USD injection of capital plus open <mark>offer</mark> in RBL Bank, was almost five months ago - yet, all approvals are still not in - in these volatile times, when invoking force majeure is not unheard of, maybe there should be</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>The Emirates NBD deal announcement, for a major 3 billion USD injection of capital plus open offer in RBL Bank, was almo…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 37</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 Retweets: 3</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/jakesprime/status/2033229676563562751" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+<h3 class='bank-head'>Negative Posts — Emirates Islamic Bank (EIB)</h3>
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> altamashhkhann</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 18-03-2026</div>
+          <div class="text-summary"><b>Post text:</b> Hi @emiratesislamic I only have a credit with you and I&#x27;m struggling to track a <mark>refund</mark> payment from a merchant who claims they have already made the payment to me. They also provided an ARN/RRN number. I reached out to WhatsApp support, but they couldn&#x27;t help me either. Please assist.</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hi @emiratesislamic I only have a credit with you and I&#x27;m struggling to track a refund payment from a merchant who claims they have already made the payment to me.</li><li>I reached out to WhatsApp support, but they couldn&#x27;t help me either.</li><li>They also provided an ARN/RRN number.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Retweets: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://x.com/altamashhkhann/status/2034035008860803125" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+    <h2 class='section'>Part 4: Most Engaged Posts</h2>
+
+    <h3 class="bank-head">Emirates NBD Bank (ENBD)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Your Daily Ramadan Tip.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 4</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033481455775457452" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Your Daily Ramadan Tip.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 2</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033803206917005622" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>We are together against Fraud.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 1</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 etweets: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033785405720388082" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 18-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hi, thanks for writing to us.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2034128605735715049" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>We kindly request you to send us more details and your registered mobile number via social@emiratesnbd.com and quote Case #985475 for us to assist you better.</li><li>We’re sorry that you experienced this; it is not what we expect our customers to feel or see.</li><li>Hi, thank you for sharing your feedback.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033966648818897171" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hello, we have replied to your message in private.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033963326862987397" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hello, we have replied to your message privately.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033960400228679932" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_AE</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hello, we have replied to your message privately.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_AE/status/2033958978934149211" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_KSA</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Thank you for sharing.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_KSA/status/2033854437861589425" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> EmiratesNBD_KSA</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>We will make every effort to address the matter promptly and provide the necessary support.</li><li>To assist you further, we kindly request that you share your registered mobile number through our DM.</li><li>We sincerely regret the inconvenience.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/EmiratesNBD_KSA/status/2033850099617415365" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> chainlink</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>ANZ Bancolombia Bermuda Monetary Authority BNP Paribas Central Bank of Brazil Deutsche Börse Emirates NBD FTSE Russell Hong Kong Monetary Authority Monetary Authority of Singapore SBI Swift UBS U.S.</li><li>Department of Commerce + many more.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 998</div>
+        <div class="chip">💬 Comments: 50</div>
+        <div class="chip">🔁 etweets: 228</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/chainlink/status/2033278994158588407" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> VijayT1609</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Some others as well, but no story is as clean as Emaar&#x27;s.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 66</div>
+        <div class="chip">💬 Comments: 6</div>
+        <div class="chip">🔁 etweets: 2</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/VijayT1609/status/2033522547027804195" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> MENAUnleashed</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Companies relying on Citi for trade finance, treasury operations, payroll processing, cash management, foreign exchange, or hedging could face short delays if local teams or offices were disrupted.</li><li>At the broader economic level, a disruption affecting a foreign bank office could produce a temporary loss of confidence in financial center sentiment, particularly in hubs such as DIFC and ADGM.</li><li>Here is a breakdown of the critical implications of its shutdown: For personal and wealth banking clients in the UAE, including Citigold customers, the main effect would be operational.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 44</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 etweets: 4</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/MENAUnleashed/status/2033532528254914781" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> MDXcrypto</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>The DFM actually tracks these companies: Emaar Properties, Emirates NBD, Dubai Islamic Bank, DEWA, Emaar Development.</li><li>The Dubai DFM Real Estate Index does not really track prices of homes at all.</li><li>I&#x27;m receiving offers much higher than -30%.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 39</div>
+        <div class="chip">💬 Comments: 16</div>
+        <div class="chip">🔁 etweets: 7</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/MDXcrypto/status/2033598851777761785" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> jakesprime</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>The Emirates NBD deal announcement, for a major 3 billion USD injection of capital plus open offer in RBL Bank, was almo…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 37</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 etweets: 3</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/jakesprime/status/2033229676563562751" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> djsuziemcguire</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>On air from 2 to 4 today with all your messages for the most special lady in your life on Nation Radio Scotland.</li><li>Happy Mother’s Day to all the Mums, Grannies, and Carers!</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 18</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 etweets: 3</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/djsuziemcguire/status/2033093346156023828" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> MiddleEastMnt</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>On March 13, Dubai’s index fell 1.7%, marking its second-largest weekly decline in six years, again led by losses in banking and property shares.</li><li>10 and later dropped to 5,391.98 on March 13, according to Dubai Financial Market data.</li><li>The Dubai Financial Market General Index reached a recent high of 6,785.48 on Feb.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 15</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 8</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/MiddleEastMnt/status/2033581239311958293" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> taxologyin</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 18-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Meanwhile, the stock has fallen nearly 20%, raising questions about the valuation strategy and timing.</li><li>Concerns over an inflated reserve price due to a stock surge could lead to starting the process from scratch.</li><li>The government may reset the IDBI Bank privatization process after bids came in below expectations.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 8</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/taxologyin/status/2034107622010589632" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> nobu_mens</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Meanwhile, the capital backing the UAE economy is enormous:</li><li>Abu Dhabi Investment Authority → Over $1 trillion AUM, one of the largest sovereign wealth funds in the world.</li><li>Even for Japanese investors, after ~20% domestic tax, you still end up with ~4–6% net yield.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 8</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/nobu_mens/status/2033068337996116323" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Pluto_0x</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Either Ibkr or I work with local banks like Emirates NBD.</li><li>But maybe it&#x27;s time to bring some to Hyperliquid?</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 5</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/Pluto_0x/status/2033525207751921798" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+
+    <h3 class="bank-head">Emirates Islamic Bank (EIB)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> emiratesislamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Apply for an Emirati Card and receive a welcome bonus of up to 100,000 EI SmartMiles worth AED 1,000 ✅ No annual members…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 2</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/emiratesislamic/status/2033846533502705781" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> emiratesislamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Trusted brands won&#x27;t pressure you to pay quickly or ask for your card details through direct messages.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 1</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/emiratesislamic/status/2033486005081416085" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> emiratesislamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 17-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Offer valid till 30 April 2026 Apply now emiratesislamic.ae/en/offers…</li><li>Complimentary valet parking Complimentary airport lounge access Metal Card exclusively for Emaratis And much more!</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/emiratesislamic/status/2033846542876995758" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> emiratesislamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 16-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Dear customer, we will connect with you through private messaging to serve you better.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/emiratesislamic/status/2033414547139117169" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> emiratesislamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>This step reflects Emirates Islamic’s commitment to corporate social responsibility and to enhancing quality healthcare.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/emiratesislamic/status/2033194504329601314" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> emiratesislamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>We are proud to be the strategic partner in supporting the development of Dubai Hospital’s facilities through The Hope F…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/emiratesislamic/status/2033194501771022559" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> altamashhkhann</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 18-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hi @emiratesislamic I only have a credit with you and I&#x27;m struggling to track a refund payment from a merchant who claims they have already made the payment to me.</li><li>I reached out to WhatsApp support, but they couldn&#x27;t help me either.</li><li>They also provided an ARN/RRN number.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/altamashhkhann/status/2034035008860803125" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> unknownfall91</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 15-03-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>Hahahahha The lions of Afghanistan Emirates Islamic Afghanistan Not hera mandis like Masoud Goat</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 etweets: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://x.com/unknownfall91/status/2033054837718528446" target="_blank" rel="noopener noreferrer">
+            🔗 X post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+  </div>
+</body>
+</html>

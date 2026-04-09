@@ -1,0 +1,10 @@
+apify-client
+openai
+pandas
+matplotlib
+openpyxl
+load_dotenv
+python-dotenv
+streamlit==1.32.0
+pytz
+streamlit-autorefresh

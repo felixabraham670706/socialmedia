@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /><title>LinkedIn Post Analysis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+
+  :root{
+    --bg:#ffffff; --card:#ffffff; --soft:#f7f9fc; --soft2:#e5e8ef; --text:#072447; --muted:#54698d;
+    --pos:#2ec27e; --neg:#ff5c5c; --neu:#f0b429; --chip:#e5e8ef; --chipBorder:#d0d6e5; --shadow:0 10px 30px rgba(0,0,0,.10);
+  }
+
+  *{box-sizing:border-box; font-family: 'Plus Jakarta Sans', sans-serif;}
+
+  body{
+    margin:0;
+    background:#ffffff;
+    color:var(--text);
+  }
+
+  .wrap{max-width:1150px;margin:34px auto;padding:0 20px;}
+
+
+  .title{font-size:28px; font-weight:800; letter-spacing:.4px; margin:0 0 6px; color:#072447;}
+  .muted{color:var(--muted)}
+  .section{margin-top:24px;}
+
+  table{border-collapse:collapse;width:100%;color:#072447;margin-top:10px;}
+  th,td{border:1px solid #e5e8ef;padding:8px;font-size:13px;vertical-align:top}
+  th{background:#f0f2f8; color:#072447;}
+    .summary-table td{ font-weight:600; } 
+
+  .grid{display:grid; grid-template-columns: 1fr 1fr; gap:18px;}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr; } }
+
+  .bank-head{margin:24px 0 6px; font-size:22px; font-weight:800; color:#072447}
+
+  .post{
+    position:relative; /* for corner logo */
+    background: var(--card);
+    border:1px solid var(--soft2); border-radius:18px; padding:16px; box-shadow:var(--shadow);
+    transition:transform .2s ease, border-color .2s ease; color:var(--text);
+  }
+  .post-neg{
+    background:#fff0f0;
+    border:1px solid #ff5c5c;
+    color:#072447;
+  }
+  .post:hover{ transform: translateY(-2px); border-color:#b0bcd4; }
+
+  /* Add corner logo (top-right) */
+  .post::after {
+    content:"";
+    position:absolute;
+    top:10px; right:10px;
+    width:28px; height:28px;
+    background:url('corner_logo.png') no-repeat center center;
+    background-size:contain;
+    opacity:0.7;
+  }
+
+  .head{display:flex; gap:12px; align-items:flex-start; margin-bottom:8px;}
+  .meta{display:flex; flex-direction:column; gap:6px;}
+  .name, .bank, .date { color:#072447; font-size:13px; }
+  .text-summary{ color:#072447; line-height:1.55; }
+
+  mark{ background:#ffeb3b; color:#000; padding:0 3px; border-radius:4px; }
+
+  .badges{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;}
+  .badge{font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid #d0d6e5; background:#f2f4f8; color:#072447;}
+  .badge-pos{border-color:#1f7a55; background:#e6f8f0; color:#1f7a55;}
+  .badge-neg{border-color:#ff5c5c; background:#d7d2cb; color:#ff0000;}
+  .badge-neu{border-color:#f0b429; background:#fff7e0; color:#b37400;}
+
+  .stats{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;}
+  .chip{background:#f7f9fc; border:1px solid var(--chipBorder); color:#072447;
+        border-radius:10px; padding:6px 10px; font-size:12px;}
+  .tag{padding:3px 8px; border-radius:999px; border:1px dashed #d0d6e5; color:#54698d; font-size:12px;}
+  .hr{border:0;height:1px;background:#e5e8ef; margin:20px 0;}
+
+  .highlights { margin: 6px 0 10px; padding-left: 18px; }
+  .highlights li { margin: 2px 0; }
+  .hl-title { margin-top: 6px; font-weight: 700; color: #072447; }
+
+    /* ---------- Tables ---------- */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      color: #072447;
+      margin-top: 10px;
+    }
+    
+    th, td {
+      border: 1px solid var(--soft2);
+      padding: 10px 8px;
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    
+    /* Header style */
+    .summary-table th {
+      background: #072447;   /* navy header */
+      color: #ffffff;        /* white text */
+      font-weight: 700;
+      text-align: center;    /* center align all headers */
+    }
+    
+    /* Row style */
+    .summary-table td {
+      font-weight: 600;
+      background: #e4e1dc;   /* table rows background */
+      text-align: center;    /* center align all cells by default */
+    }
+
+    /* Override for Bank Name column (first col only) */
+    .summary-table td:first-child,
+    .summary-table th:first-child {
+      text-align: left;      /* keep Bank Name left aligned */
+      padding-left: 14px;    /* add breathing space */
+    }
+    /* Negative Post Card */
+    .post-neg {
+      background: #DAD6D0;        /* new background */
+      border: 1px solid #b23b3b;  /* keep a subtle red border (optional) */
+      color: #072447;             /* ensure text stays readable */
+    }
+
+    /* --- HERO fix: force 2-col grid with 3 stacked rows --- */
+        
+/* GRID: 2 columns, 3 rows; logo spans all 3 rows */
+.hero-grid{
+  display:grid;
+  grid-template-columns: auto 1fr;  /* left = logo, right = text column */
+  grid-template-rows: auto auto auto;
+  column-gap: 24px;
+  align-items:center;               /* align items vertically in their rows */
+  justify-content:center;           /* center whole block on the page */
+  margin: 16px 0 24px;
+}
+
+/* LOGO: small, fixed height so it never forces wrapping */
+.hero-logo{
+  grid-row: 1 / span 3;             /* span all three rows */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.hero-logo img{
+  height: 60px;                     /* ↓ reduce if needed (e.g., 100px) */
+  width: auto;
+  display:block;
+}
+
+/* Each row on the right is its own centered line */
+.hero-row{
+  display:flex;
+  justify-content:center;            /* center text horizontally in the row */
+  text-align:center;
+  color:#0a2540;
+}
+
+.hero-row h1{
+  margin:0 0 4px 0;
+  font-size: 28px;                   /* adjust to taste */
+  font-weight:800;
+  line-height:1.2;
+}
+.hero-row p{
+  margin: 2px 0;
+  font-size: 16px;
+  line-height:1.35;
+}
+
+/* Optional: stack on small screens */
+@media (max-width: 680px){
+  .hero-grid{
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    row-gap: 10px;
+    justify-content:stretch;
+  }
+  .hero-logo{ grid-row:auto; }
+  .hero-row{ justify-content:center; }
+}
+
+.genai-badge {
+  position: absolute;
+  top: 60px;
+  right: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #072447;        /* navy */
+  background: #f0f2f8;   /* light gray background */
+  padding: 6px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+.hero-grid {
+  position: relative; /* so badge aligns inside hero block */
+}
+
+.post-link {
+  margin-top: 8px;
+  text-align: right;          /* pushes the link to the right */
+  display: block;             /* full width row */
+}
+
+.post-link a {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0a66c2;
+  text-decoration: none;
+}
+
+.post-link a:hover {
+  text-decoration: underline;
+}
+
+
+
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    
+<div class="hero-grid">
+  <div class="hero-logo">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAATAAAAGhCAYAAADmwegVAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAFiUAABYlAUlSJPAAACS0SURBVHhe7d1PrJ9Vncfx66yMTsHVjAlmdJyYgAl1h6OJzMKWcTFVKAkbW2EDBgUXEGwDygKooRK6oK0E2LTe64bEFqgLpSVGJhFhR0mAxAz+yTRRVwqjcef4+XEe+HH7+/Occ77n7/N+JcTnkgi9l/t8ft/zPd/nPO/7299tAECD/sH9LwA0hwAD0CwCDECzCDAAzSLAADSLAAPQLAIMQLMIMADNIsAANIsAA9AsAgxAswgwAM0iwAA0K/g0ivd/4gvuCgDs/PWXP3ZX61GBAWgWAQagWQQYgGYRYACaRYABaBYBBqBZBBiAZhFgAJpFgAFoFgEGoFkEGIBmEWAAmkWAAWgWAQagWQQYgGYRYACaRYABaBYBBqBZBBiAZhFgAJpFgAFoFgEGoFlVvlbt2a3vbnz0sn92X6FWx04+tXH0xGn3VR0+dMk/bjz+4B0bn7ri39zfsfX8i+c3bj74sPuqDfqZ3HP7lze+uOuz7u/Ee+Do1sbmqbPuK1s+r1WrMsBefOZ4sl9A2Hj5tf/Z+M99Bzb++Ob/ub9T3hBeX9xtd6POU1gfOvqDqr7ndXQfPX7YPtDvOvRYsg8v3guJpKYYXvc/sjm7aVsKr9tvum7jJ1uHuy4GCDB40Q18y4EjkwkvfZ83H3h4Vnm1Qj+PJx68c+Ohe746u+4ZAYbRZuF18MisAqtF6vDS95uq15OCqq0Xnz6+sf/63e7v9I0Aw2iqQp45+3P3VXk5wqum73edYcn40Y9MZwOMAMMoatjWtOOYMrx+87+/n/X4WgmvKS0ZtyPAsJaWjDX1gFKGl77Xa/Z9s6pl8ipTWzJuR4BhpaEaqalp/9DdX00WXjfcet/Gby783v2duulnMLUl43YEGJaa7cAdfLiu8Pr7MilFtaHwUlC3EF6qQPVzePJ7905uybgdAYaltGzU5Hkt1KTWX9aG8KopqJcZls8pfg4tIsCwUG1Ne92wqjqsKaBbCa+h35Vi+dwqAgwXUUVSU9N+/97ds2f5rCm8bvjafU2EF/2uxQgwvIduZjWya7mpVXWkGA9oKbzody1HgOE9NLxZSyNb4aWqY6rhpe9b8130u5YjwPAO9bxqGd7UcUopqo5Wwmv4/qc63zUWAYYZ3di19L0UWk8+eq95v6eV8FLlqTPxrv70Tvd3sAwBhtkNrRMXarixFV4aE9BNbGk2pNpAeNGs90OAoaq+1+zkUOMxgVbmvNTrUnhbL5t7RoBNXE19L93A1g3rVsJLO40pdlt7R4BNWE3zXilmvVoILwUWO43hCLCJ0k1dy8mqKWa9Zj2viubZFhn6few0hiPAJkqVl27y0nQTW49LKLRqP1VCYxJq1vNYUBwCbILU86rhOcehArHccVN4adlYc3gNYxLWO61TRIBNzGzpePCI+6os6x3H4XurobJcRqHFmIQdAmxidIPX0Bey3nEcwqvmY6A1mJri0agpI8AmpJaRCd3I1juOemdj7eHFA9n2CLCJ0NHQNYxMpHjGUcFc86vPVGkSXmkQYBNx13fKv1VaN7D1uITCS9VXrRReqjYJrzQIsAmoZelo3bTf/OHZqg5e3I7wSo8A61wtS0dN2ls27bXTWENVuYy+Vx4NSo8A61wNN/kwaW9FoVzzlP0QXkiPAOuYllill46qQB4/bHfCgkJLr3qrdVCV8MqLAOuUbnRVX6WpB2Q5ca5ZLx1MWCPCKz8CrFPqe5VeYumG1l9WatmMWITwKoMA65Buct3sJanqshxWrXlcgvAqhwDrjKqu0ruO6nfphrbqe2nHsdZxCcKrLAKsM6pUSj/MrMrL6oUUCuRadxwVXpZVJvwRYB3ReMHxk0+7r8rQoKpV30uhpaZ9jTuOwwmyzHmVRYB1ROMFJSuV2cjEg3e4r+Jp2Vhj017VpeUSGeEIsE7oRi89XmD5Rh0thUtvRCyizQkezK4HAdaBGhr3WjZaPedYa9N+OIyQ8KoHAdaB0o17HZFj1cye9b0qednIvBTHACEeAda40o173dBPHL7T7Mau8UhofW9PPnovx0BXiABrXOmHtbUbZzUyoUqytqa9wku9PcvHoWCHAGuYbvaSN7zltL02IGrseym8ePVZvQiwhh07+ZS7yk+VidUogSrImw+UHQFZRN8f4VU3AqxRWm6VHJv4+o1fMls61jisql1Vq4FcpEOANUiVyrET5aovLR2tbu4a+17DlD3qR4A1SDd9yYrFaulY47yXwpkp+3YQYI0pPTahysti6agqsrZ5L816MajaFgKsMWrcl7rpLQdWVXnVNO+l0LKcZ0MeBFhDVH2VfIGr1dJKZ/VrGVwTjUtYbUogHwKsIQ8c3SpWfWmcwGKkQCFcw1n981RVMi7RJgKsERqZKFV9qep66G6bU0dre5ejdhy//Y397iu0hgBrhKqvUjTzZfEcYG0jE8OOI9pFgDVA1VepoVX1hSxmvrR0rGlkQlWl5fsqUQYB1oCS1de3bt9ncpOXPi123iy8eEC7CwRY5UpWX1YzX6Ufe9pOS2Ka9n0gwCpXqvpSlWIx81Xb0pGmfV8IsIqVrL5UpfS2dNQgLk37vhBgFStVfelGt2jc17R0VBgzad8fAqxSJasvixu9tqWjlsNM2veHAKtUqcMK1dy2uNFrGlhVNWlRUaI+BFiF9JBziYFPq8Z96aOu51kee436EGAVKnVYoXboYmejVHXddaiOZx0VyJzt1TcCrDLqHZ0594L7Kh+r6kt9r1qOh6bv1T8CrDLfP/Vskd6RxdiENh1KHvczT708+l79I8AqouAqcdqq1dhEyeN+5un70aNC6B8BVhHNTZUIgNtuuja6+qpp5itl30uvf9MyH3UgwCqh4No6dc59lY+qFTXvY+jPXsvMlyrJlM85Khiv2fdN9xVKI8AqoeqlRPPb4rQJhVcNS8ccIxOfu+rK2X8nVZwojwCrRInBVe3Q7b8+rvqqpXGvEM4xMqGfmf4dGhVhKVkeAVYBhUCJ/pGqr1i1NO4t3xS+isJrz67PzK71oDrKIsAqUKr6ir3hNW1fQ+Ne30fOkYmrr3r756bvvaYjsqeIACtMy5AWq69aGve5lo7z9ux+uwKTWp46mCoCrLASg6sWD2yriV3Di2m1dMx9NLTCUru3ooa+3nOJMgiwghRcJUYnbrvxWncVRn/uEgO32+VeOs6bH9Wo7T2XU0KAFaSlY+7RCYveV6mB23mqgqxeOBJC4xQD/Szuf2TTfYWcCLCCtk7nr75ie1/q2dVQfeXadVxm+79bPxPGKvIjwAopceaXRfVVw9iEel6lH9RW5Tffe9PPpNQR4FNGgBVSYvs9tvelJW8NQ6u1nPG1/cNAPxuqsLwIsAL0aZ27ea9qIfYZwRoqDFVeJZeO8+b7YAOqsLwIsAJKNO9jq68ahlZVddV0PPSiIKUKy4sAKyB3814zS/PDlyFKvWRk3kN313U8tP4swzzYPKqwfAiwzLR8zF3J7Nu7K+rGr6H60vI39sHzFBYty3UkOFVYHgRYZlpi5NzFU3DF7tiVrr5qWzrO23n5x93Vu/TfV09YID0CLLPcL+yIPeu+hurL4m1Jqez85MUBJjXMyk0BAZaRZr9yh8FX9l7jrsKUrr7UY6q1+pJFPTBRFcahh+kRYBnlnv1Sf+ajH1l8g41RQ/VlcV5/SvqzLasOazlmu2cEWEa5Z79iRydKV18aUyg9cT/Gsrk0VWGcVJEWAZaJqpmcs1+qCmIGPmuovixOjM3hkh0fcFcXq2H8pGcEWCa5z85qvfrS8reWift1Vm0w6L87IxXpEGCZ5Fw+qi8TM7iqyqtk9aU/v4ZWW7EuaBlsTYcAyyD38jF2dKL0A9v688dsPuSmn/Wqn3fu0ZkpIcAy+O+XXnFXecQ8tK3lTskbTkHQQuN+u51XLJ4HE5r56RBgGeQcn1B4xQx9ljijf55mvmKqx1LW/cw3TxNgKRBgieVePu67bpe78qfgKjlBrqFQTd23aNVOpKinSDPfHgGWWM7dR1UuMTt3pc+6L3nGfawxVe8z53iHpDUCLLGcu48xzXsFV4k3JA0UvDWeNjHWmA8OJvPtEWAJzWaAMi4fY5r3syVO5kMW57UytLrMmA8OfUiwjLRFgCWUs3mvCiCmeV9ycLWlodVVlj3YPY9lpC0CLKEfnfuFu0pv/3Xhy68Sp2TMi31qoBZjZtdYRtoiwBJRKORq4Gv5EjN5f+wE1ZeFMRUwy0hbBFgiOSsaBUBM877k4Gov1ZesG6UYsIy0Q4AlknP6Pmb2q+ToRE/Vl4ztQeZ+MqNnBFgCCoRcFZgqr5gQyNmn266n6kvGVsHa3Cn1odEbAiwBhVeuX1BNrocuH3Uj5Ry0nddb9SWrnofc7sxZHvC2QIAlkDMU9uwKb97nfj/lvN6qL1/Pv1T2sMheEGAJ5JpoV88ltIrJuczdTn/m3qovUSU8thrmiB0bBJgxVV+5Jtr/a9e/uyt/ud9POa/n6mvMMKvoZ884RTwCzNj5V99wV+n9x6c/5a78laoAVDXGPPJUu0sv+aC7Wo9xingEmLEzz+UJhpjlo6rEUsvH3ntfYyswYZwiHgFm7OVX8zTwY5aPOZ/RnKebO+aJgRb47AiX+hDpCQFmKGf/K2b5WOrYnH17dwWPfLRi7DS+0AeLR4AZyvWJqkomdPmY+4TYgYKrxbPufX3ssg+7q3Hog8UhwAzl6mnENMFLzX7FDNy2xKeJL+dfy7fp0yMCzFCu/tfnrrrSXfkpOful5SMuRh8sDgFmJFf/S1VM6PJRN0uJ2S9VjGMfdG6d7/ss//TWn90VQhBgRnLNfym8QpdipZaPMadltOZDO/z+2+gDJeejZ70hwIzkerYtNAxKLR97H1zdzrcHJiwjwxFgRnL9EoYuxUotH2Pm1abitxf+4K7giwAzoGDI0f9SePn2WAYllo9TGZ2IxRIyHAFmINdWeGg1U2r5GNOva1XI98soRTgCzECuT9DQ6ftSy8epnvnlG2KzCp6J/CAEmIEcA6y6KULHJ0osH2MeNp+iEk9H9IAAM5BjgDUmDHIN2M6jee+HPlgYAiySSv8cn557Ph92ikOJZx9VLX5l7zXuq7z0/ZY6bWNw6Q7/UYoSS/weEGCRcn1yhlZgJT7Z9WcN3S2NpX/3LQePNFfRvPL6r9wVfBBgkaofnyhwdE7JyfuhV3jDrfe5v9OGEsv8HhBgkXI08H1e1zVPVUju5aOO+ik9ea/ltr7v+x/ZdH+nfjwTGYYAi5TjkzP01WklZr9qOHVCp76qEjt09AfNLCXVA6MP5o8AizCb38m0hAxR4sz1Gp57VHgNod/SUjJ3tdwDAixCjgnq0P6XwjV3BaY/a2jYWhsCTKGw+cOzs+va/elNlpG+CLAIOZYnof0vhWvuJUlNs1+qBFWJyV3feayJSffWdk5rQIBFyFGBXX1V2PjEz1582V3lU2r2a5mhClOQK8RqRw/MHwEWIcfOUej8V+7+lyqeUrNfy8xvfmi4NVeFE/p78eZbf3FXGIsAi5B6B1JLoFb6X1de/q/uqh7bw/+WA0fcVZ1o4vsjwALleIQotP9VYnyituWj6ANgflNBFViOx4xYCuZDgAWqeXwidzO4xuXj4KIq7GC9VRjB548AC5QjJEJfn5a7/1Xj8nGw/WeokEg5VhGz28kYhT8CLFCOc8xDKrAS/a8al4+D+XGKQa07klRg/giwQKmXkHqmMGRZVmJ4tdbl42B7LzFlFfbHt8JDiOch/RFggVLvQH7qk2H9r9w7WS0cXLhoKZ6qCmMZmBcBFij1p6UqsBC5+181Lx8Hi5biqXthIVhC+iPAAqhRm/qXLbSBn/NcqRaWj7JsGDhFFdbCI0s9IcAC1DpCoZ3RnEvI0KcEcts+DzZIUYXF9MDgjwALkPpTNnQC//yred8vGFollrAsbDdPt3FSBRYjwAKk/pQNnsB/Kd8OpEK2lQpMloWtdm0tP5B4SW1eBFiA1L+kIctHyXnzKLy2z1fVbFXYHjv5lLuKxyhEXgRYgNS/pDsvD6vAcva/Ql/zVsqqsN08ZbeMZCcxLwIsQOqdvksv8X+voBr4OW+elpaPg2WVrWUzn13IvAiwCoUsIXM28PXna2F8YrtVoXvmuRfcVTktLclrQYAFSLlUC36EKGMDv8XqSy7Z8QF3dbHZG8wjqyf9/2N+N0Le6D11BJin1KdQhFY2OZvHLY1PzFtX2T5zLu6sMGbA8iPAPKV+1i30EaLcE/gtWlc5xj6GFfu7wRLSHwHmKXWT9l8u+yd3NV7s0sVHq/0vUUCsConYZWRsdR6yeTN1BJin1MuEkOqGx4fGW1fhxiwjY3eBqcD8EWCeUo8qhFQ3OU6HHbTa/xqsq3JilpGvvP4rdxWGJr4/AsxT6pNYP7TD/1M45wR+q/2vwbo/f8yBkLHtBSowfwSYp5S7faEjFLl2IFvufw1WjVKIKuzQEIutzkP6n1NHgHlKuYQM/QTOtQPZev9LxlSQIW81t9hICd2BnjICzFPKMYqQUygUqLma+K33v2RMBXn85NPuarycGyl4FwHmqbYKLOeN03r/S8ZUOfpv7Pvf2WIjpYefb24EmKeU/aaQHkiuZyBD+3O1Gfsh4bsxYrG5wxyYPwLMU8oKLKQHkuvxldC3JNVoTIj59sEs+l/sQvojwDykDC8J+QXONUJR89u3fY35oPCd6YrdSCG8whBgHmp8DjLnCEUvxizVfEYp9MEWW4GFHiM+dQSYh9TLtaCDDDONUPQUYGOqnVkojRxMtaiCqcDCEGCVCO2B5NiFVHj10MAfjK10xz4XabED2cOISgkEmIeUS8ig8Ip8dGWsnsLLx9ieJxVYOQSYh5RN/JDlY64dyJ4a+LLucaLB2EZ+zPOTg5D+JwiwaoR8AueaAettwHLsz3pMMFk08HtboudEgHlIuYQMOUol2wxYZwE21piK26IHSXiFI8AqEVKBpVzSDrS06e0G8zmyaF2fkeVjWQSYh5QVz9i+zLzUZ5NJj9WBT79xXYUVe46+sAMZjgCrxMcu+7C7Gi/HEOtUl4+DdSMSFnN4U/8ZxyDAKhG0C5lhCbnz8mlPiK/6GSvcYntgah3QAwtHgDUsxxxYSLD2ZNUy3WIXuIdDIksiwDykrHhqHWSc+vJm1TL9zHMvuKtwvc3Y5UaAVSKk0kn9GBHLmzVLSPpfxRFglfB9G1GO5SPb+8tn/yz6X8ISMg4BhqV6PeLFZyB5WUhZzH+p+qq1ddAKAqwSvkvIHFP43FzLWcx/UX3FI8A8pLyhff/ZqQ9XlF5HKGLDX30xiwqMAdZ4BFijcsyAMZ+0mMIr9uevDywqsHgEWKNyVGC9NvFjw2fr9Dl3FU79RZbo8QgwD747hWPV+ovcawUW8wwpy8e6EGCNSt3EZz5pMYvlo3xx92fdFWIQYFio50eIYh6Ct1g+6sOBDwgbBJiHKT0X2PMQq08FNX/QpNXykea9HQKsURbLmFV6bjCHPsVgtXyk/2WHAPMwpV2jqR+jM5j/b26xfNQ/jwrMDgHmoaYl5Jtv/cVdpdHrclnVl88zjMPPwXL5OKUPwtQIMA+pxihq1OtNFrp7e/TEaZPl477rdrkrWCDAPNDEb5/vAPDwc/jRuV/M/jcGy0d7BBgW6nkJ6UOho6XjurPxx9iz6zMsH40RYB6m8sun77PX79V3CanNjM1TZ91XcRRgsEWAeUpxY6ceifAV8pLdVoQcg3PmXPzR0VqKMn1vjwDDRXquNH0/LHTuvUnzfi/N+xQIME+pmts1VWE9b1b49sCeOftzdxXnK3uvcVewRIB5msJOZK87kL4zYFa0dORstTQIME+pbu4c53uN1esSskR4CbNf6RBgnlLd3DnOuJ86i1EIX/p9YfYrHQLM0yU7PuCubNVUgaX6HkuzeBGHr6/f+KWuN0VKI8A8feyyD7urfvX6PVq8iNYXzfu0CDBPqZr4vruQvVZJqejnm7sHRvM+PQLMU6pfyFIN5kV63Gm1OEnC1203XuuukAoB5qnXEYPe5W7gq3FP8z49AsyTGrIpmrI1DbL22HR+5fVfuas8qL7yIMACpKjCfF/1xc7WePpwyLmE1O8Hzz3mQYAFSNEj8n1TTsrDFXvrgVmdZT/Wt27f566QGgEWIMUrsapaQnZ28mzO/peqrz27OTYnFwIsQIoRBt+HjKfwTKaVrVPxL+MY67abrmV5nxEBFiBFBRbzslUsp+or14iKqq/9e3e7r5ADARYgxfa4lpA+y0g+5cfJ2byn+sqPAAuQ6pfU53nIlEvInpanuZ5/pPoqgwALlGIZ6bPUmdIr3kLlHJ/QziPVV34EWKAUy0ifRj5N/PVyjU/od2H/9VRfJRBggVLsRHImmK2t03l2H5n7KocAC1R6Fozlymq5lo+auOeZx3IIsEApfml9n9cjxJbTuxxTLx/183/o7q+6r1ACARZIv7zWAeI9zNrx+xtjWbzLcR2dtsp5X2URYBF2XvFxd2XDd+CSCmwxDa+mXj5qbOL2m65zX6EUAiyCdR9MSx6fZQ87kYtZvctxlScO38kHSAUIsAifu+pKd2XHpwpTFYCLpX72UQOrNO7rQIBFSPFL7LP0oQK4mKqvlM8+6mf+0D007mtBgEXQL7N1iPgsIafwijdfqWe/7rn9y3xwVIQAi2TdyPcZpeBGei/t4qbsf2nmi8Z9XQiwSNZ9MJ93F6bqgbX6RMD3Tz3rruzNlo7MfFWHAItkvRPpcy4YFdi7tPQ+fvJp95U9LR2Z+aoPARbJupGvG3HsQCu7kO86c/YFr/6hD+06snSsEwEWSVWQdRU29gz3VHNgLTbxj518yl3Z0ocEu471IsAMWFdhY8cAFJ4sI98enUj14g6FFz/jehFgBqwb+T6niKZYRqZaiqWSqvrSspH3O9aNADNgXYH5DLOmWEa2tIRU9ZXiuUcFlxr3qBsBZsC6D6YKaGwVlORcsobGKFJUX6pqH3/wDpaODSDAjFhXYedfe8NdYRlVXtbVl0KLvlc7CDAj5gOtI5vSOy+3fRJAWumBPXB0y13Z0bKRvlc7CDAj+qW3/NQe28hP0QN7862/uKt6peh9qWnPvFdbCDBDe3Z9xl3FG3tzpjgRI+VpDlase1/qJdK0bw8BZujqq+zCRMs43yOmp8K6+lLT/idbh+l7NYgAM7Rnt10FJmNuUt101rNgtffADh39gbuKp5/fk4/eS3g1igAzZB0mv77wO3e1mvVDxjVXfkdPnDabutd/L41LpBhFQR4EmDHLHayxpytY34A+J2LkpMrw2Am73peOx2HHsW0EmLHbbrzWXcXTDTtmOWd9MmutS0hVX1YbDJr12n/9bvcVWkWAGdNyznIZOWagNck0fmUhpmWt1XlfjEv0gwBLwHJZ8rMXX3ZXy01hlEJDqxahquDieJx+EGAJWE7lj6k6Uuyg1fRAt8YmNk+ddV+FI7z6Q4AloArMahk5tg9mvYxMdb6WL33vFmMTCi8GVftDgCViuYzUccnrpFhG1sBibGIIL2a9+kOAJWK5jHz+pfUDrT3uRFo07gmvvhFgiVguI8+cW1+BWS8hfd5PmcrNBx+OCtKh50V49YsAS8hqGambeN10vPUSsvQ0vpaOMc87quqiYd8/Aiwhy9Mpnjm3+o3TqjIsK42SYxQKz9DGvX4GTzx458a3v7Hf/R30jABLSFWR1TJyzPlgO6+wO9ywZA/sru88FvTvV3jp2UYm7KeDAEvMahmpWah1N7V1H6zEMlJLR32vvobwstz9Rf0IsMQsZ4/WjVNYH2udexkZunRUcL/49HHCa4IIsMRUGZjtRj63OsCsG/m5h1lDlo4KLR1GaH2kENpAgGXwrdv3uas463blFJb6y0rOPpjv0lHfp3YZn/wehxFOGQGWgdVJrQqUzR+ufibQspGfaxZMlZ7P0lGBpX6X5rwwbQRYBrrh9u+12RlbN5Vv2ch/+dX0S0iF8i0Hjoyu9rRMpt+FAQGWiVWArZvKt2zk5ziZVZXXmF7b/JKRfhcGBFgmVjNh65aRlo18/btSjlKo76W/1lFVOSwZ6XdhHgGW0W032Rw3vWoZqRvcatdTUo1SjO17KbS0y8iSEYsQYBlZLiNX9Ywsb/YUoxRj+l6qurRc5GFsrEKAZWTVzNeNv2qodefldjuRv73wB3dl55aDR5YG49DrourCGARYZlbLyM3Ty/tgli/YtV5C3v/I5tJ5L/XvFFz0ujAWAZaZlkYWPSoNtS5rsFv2wSxf4a/Nh0V9r2G5+OzWd03HQNA/AqwAq8n8VUfsWC2/rHYitWTUo0LzWC4iFgFWgJZ4FhXSql08yz5Y7DJSAXjDrfe907RXcGmZ+PpPT7BcRBQCrADdsBYVhwJhWTPcsg8WsxOpP+MNX7vvnRAc+lzsLsICAVaI1TE7x0485a7eS+Fg1Qcbc5jiIgqvYcdx9gjQM8fpc8EUAVaIAsZipEIzYct6VFZ9pdBG/l2HHtu4dMcHCS4kQ4AVZNHMV5WzrJlv9Vyk/h36y9cTh++c/UVwIRUCrCA9lGzx7OKyZr7lc5HnX3vDXQH1IMAKs6rCFi3zrDYLJKaRD6RCgBWmKsmi2b55avFk/p7P2+xGhjbygZQIsApYVGEKsEXNfKtxCsuJfMAKAVYBvcfQogo7dvLikQqrcQotUy0m8gFLBFglrKqwRUqPUwCpEGCVsKjCVCUtOq3Vamh23Xn8QG4EWEUsqrDtD0yL1TJy3Xn8QG4EWEVSVmFWz17qL6AWBFhlLKqwRc382260OUhx1UmwQG4EWGUsqjANnW4fPNXUv8Uy8tcXfueugPIIsAqZ9MIOXdwLs1hGHj/5tLsCyiPAKmRRhWnkYfvclsVuJH0w1IQAq5QO/Iu16Ahnk91I+mCoBAFWKS33YsNGb//ZXoVZvBWJeTDUggCrmEUV9sDRLXf1NqtDFIEaEGAVUxUWe6bX9oe8LY7YUQ+M5yJRAwKsck88eKe7Cre9CrM4YmfVK92AXAiwyml+K3bZt70K0xE7qsRicD4YakCANcB6R1LhFRuK2iBgnAKlEWANUODEznApcOan8y1mwhinQGkEWCP0BuvYsYr5l39YzIQxToHSCLBGKHBiHzHaXoXF/vMYp0BpBFhD9IhR7DsWbzlwxF293cyPqcLUA+OUVpREgDXm8cN3uKswqsBUiYmqutiZsGXHWAM5EGCNUQUWGzrzJ1XENvNZRqIkAqxBjz8YV4X95sLv3zm1NXakgmUkSiLAGqTQiZ0Nm58Li33Am2UkSiHAGqWxipiGviqn+x/ZnF3rnxPTzGcZiVIIsIbFVmE6XXV4xChmpEJhOGwMADkRYA3TSRWx/athKRl7CixVGEogwBqnKiwmeOaHW2OqMAIMJRBgjbNo6N9w632z/40ZbFU1t+h9lEBKBFgHNBcWMxs2jFUoDPft3eX+rr/N0wQY8iLAOhE7Gzb0wrS7GWrRm5CAlAiwTqh6ijm9VUvAmw88PPvnxIQYJ7UiJwKsI7EPew8nt8Y8XjR/ZA+QGgHWmSe/d6+7CnPzwbgqTJUcjxYhFwKsMzpDP2ZXUuGj0YqYKoxHi5ALAdYhVU8xr2O75eCRqCps+0tEgFQIsE7FLCWHhn5MFUYzHzkQYJ1SBRUTYrMq6kJ4Q59mPnIgwDoWO+CqCX0tI0Om85nMRw4EWOc04Br6eJAqML06LfQZyWMnn3JXQBoEWOdmA66HwwdcNaGvDYGQENRD4jTzkRIBNgEKoJi5LoVY6GjGA0e33BVgjwCbCAVQ6JT+cFhhyP+fkQqkRIBNSMyupGbDQl/p9v1Tz7orwBYBNiGa0g8NMS0lNRoRsqupo6uBFAiwiYkZrdBSct91/ueFKfyOnjjtvgLsEGATpCostB+mpWTIcCuDrUiBAJuomKXkby/8wXusgsFWpECATZT6Yc9ufdd95Uc7iyFHT8+/TBewQIBNWMxr2bZOnfM+8YIqDNYIsInTlH7I0Tt6zEhT/r6owmCJAMOsHxbyqJB2JanCUBIBhreP3nk0rKl//rU3vMOPKgxWCDDMaKwipKmvisp3KUkVBisEGN4R+tC3Tp2gCkMJBBjeQw99h0zq/+mtP3tVYlRhsECA4SIhk/oKpEt3fNB9NQ5VGGIRYFjoJ1uHvZeFvqMVCr37H9l0XwH+CDAspCAKber70EkVnBeGUAQYlop53GgsBR6ntiIUAYaVtDOZOsQ4tRWhCDCspRALPRN/rJsPPuyugPEIMIyi+bDQF4OM8fyL5985ex8Y631/+zt37eX9n/iCu7KnJcvOKz7uvkJN7jr02GzJl4I2Dl7/6Qn3FWqmAypTnbL711/+2F2tV2WAAZgunwBjCQmgWQQYgGYRYACaRYABaBYBBqBZBBiAZhFgAJpFgAFoFgEGoFkEGIBmEWAAmkWAAWgWAQagWQQYgGYRYACaRYABaBYBBqBZBBiAZhFgAJpFgAFoFgEGoFkEGIBmBb9WDQBKowID0CwCDECzCDAAzSLAADSLAAPQLAIMQLMIMADNIsAANIsAA9AsAgxAswgwAM0iwAA0iwAD0KiNjf8H71Rax9BKJcEAAAAASUVORK5CYII=" alt="ENBD" class="logo">
+  </div>
+
+  <div class="genai-badge">⚡Powered by Gen AI</div>
+
+  <div class="hero-row r1">
+    <h1>LinkedIn Engagement Analysis for Banks</h1>
+  </div>
+
+  <div class="hero-row r2">
+    <p>Duration: 08APR2026 to 09APR2026 14:21:21</p>
+  </div>
+
+  <div class="hero-row r3">
+    <p>Number of Banks considered for Analysis: 6</p>
+  </div>
+</div>
+
+    
+<div class="section">
+  <h2>Part 1: Bank Posts Overview</h2>
+ 
+  <table border="1" class="dataframe summary-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Bank Name</th>
+      <th>Number of Followers</th>
+      <th>Posts By Bank</th>
+      <th>Total likes for Bank Posts</th>
+      <th>Total comments for Bank Posts</th>
+      <th>Total reposts for Bank Posts</th>
+      <th>Bank posts with 100+ likes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Emirates NBD Bank (ENBD)</td>
+      <td>1.4M</td>
+      <td>4</td>
+      <td>193</td>
+      <td>9</td>
+      <td>27</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>Emirates Islamic Bank (EIB)</td>
+      <td>383K</td>
+      <td>3</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>First Abu Dhabi Bank (FAB)</td>
+      <td>nan</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td>Abu Dhabi Commercial Bank (ADCB)</td>
+      <td>631K</td>
+      <td>5</td>
+      <td>244</td>
+      <td>3</td>
+      <td>20</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>Abu Dhabi Islamic Bank (ADIB)</td>
+      <td>652K</td>
+      <td>1</td>
+      <td>159</td>
+      <td>17</td>
+      <td>1</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>Commercial Bank of Dubai (CBD)</td>
+      <td>296K</td>
+      <td>1</td>
+      <td>13</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+    
+<div class="section">
+  <h2>Part 2: Customer's mentioned Bank Posts Overview</h2>
+ 
+  <table border="1" class="dataframe summary-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Bank Name</th>
+      <th>Number of Followers</th>
+      <th>Customer's post Mentioning Bank</th>
+      <th>Negative Post</th>
+      <th>Total likes for Cust Posts</th>
+      <th>Total comments for Cust Posts</th>
+      <th>Total reposts for Cust Posts</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Emirates NBD Bank (ENBD)</td>
+      <td>1.4M</td>
+      <td>74</td>
+      <td>0</td>
+      <td>1107</td>
+      <td>142</td>
+      <td>45</td>
+    </tr>
+    <tr>
+      <td>Emirates Islamic Bank (EIB)</td>
+      <td>383K</td>
+      <td>4</td>
+      <td>2</td>
+      <td>9</td>
+      <td>5</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>First Abu Dhabi Bank (FAB)</td>
+      <td>nan</td>
+      <td>13</td>
+      <td>1</td>
+      <td>325</td>
+      <td>46</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <td>Abu Dhabi Commercial Bank (ADCB)</td>
+      <td>631K</td>
+      <td>3</td>
+      <td>0</td>
+      <td>11</td>
+      <td>3</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>Abu Dhabi Islamic Bank (ADIB)</td>
+      <td>652K</td>
+      <td>12</td>
+      <td>0</td>
+      <td>111</td>
+      <td>31</td>
+      <td>12</td>
+    </tr>
+    <tr>
+      <td>Commercial Bank of Dubai (CBD)</td>
+      <td>296K</td>
+      <td>5</td>
+      <td>0</td>
+      <td>78</td>
+      <td>22</td>
+      <td>11</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+    
+    <h2 class='section'>Part 3: Negative Posts by Customer</h2>
+<h3 class='bank-head'>Negative Posts — Emirates Islamic Bank (EIB)</h3>
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ahmed Hesham</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="text-summary"><b>Post text:</b> emirates islamic keep surprising me was having current salary account which closed long time back and still active moreover there’s liability against my account despite not having any kind of products loan , finance or even cc , they have lead me to no where but to approach central bank and i am sure they will help inshallah to waive this and close the account permanently central bank of the uae no recommend at all for the poor customer services</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>emirates islamic keep surprising me was having current salary account which closed long time back and still active moreo…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 6</div>
+        <div class="chip">💬 Comments: 4</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/ahmed-hesham-a721ba88_emirates-islamic-keep-surprising-me-was-having-activity-7447599682668883968-mdZj?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAAZHa_MBjyPSifUwtJTumM7WvyEQp1ka14g" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ripon Sinha (PMP)®</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="text-summary"><b>Post text:</b> emirates islamic disappointed and frustrated with the repeated aed 25 deductions from my bank account — four times without any clear justification. despite raising a <mark>complaint</mark>, the explanation provided over the phone was not satisfactory, and the process of getting a <mark>refund</mark> back seems unnecessarily difficult. as customers, we trust banks to ensure transparency and protect our hard-earned money. repeated unwanted deductions without proper clarity can seriously impact customer confidence. i sincerely hope the concerned team resolves this <mark>issue</mark> urgently and ensures that such incidents do not continue in the future. <mark>#customerservice</mark> <mark>#bankingissues</mark> <mark>#transparency</mark> <mark>#uae</mark> <mark>#customerrights</mark></div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>emirates islamic disappointed and frustrated with the repeated aed 25 deductions from my bank account — four times without any clear justification.</li><li>despite raising a complaint, the explanation provided over the phone was not satisfactory, and the process of getting a refund back seems unnecessarily difficult.</li><li>repeated unwanted deductions without proper clarity can seriously impact customer confidence.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 3</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/ripon-sinha-pmp-%C2%AE-4ab5b7162_customerservice-bankingissues-transparency-activity-7447596672425209857-oMFb?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAAZHa_MBjyPSifUwtJTumM7WvyEQp1ka14g" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+<h3 class='bank-head'>Negative Posts — First Abu Dhabi Bank (FAB)</h3>
+
+    <div class="post post-neg">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ali Raza Shahid B.</div>
+          <div class="bank"><b>Bank Name:</b> First Abu Dhabi Bank (FAB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="text-summary"><b>Post text:</b> i would like to bring to the attention of first abu dhabi bank regarding an <mark>issue</mark> i’ve been facing while trying to close my bank account. despite my account balance already being zero, i am unable to proceed with the closure through the mobile app. each time i submit the request, it gets declined due to a “remaining balance,” which is unclear and not visible on my end. currently, i am not in the uae. however, a friend of mine visited a fab branch in dubai on my behalf and was advised that the request must be completed online or via email. unfortunately, i have not received any response through email, nor has the mobile app process been successful. i kindly request the fab team to look into this matter and assist in resolving it at the earliest. your support in closing my account smoothly would be greatly appreciated. thank you in advance. <mark>#fab</mark> <mark>#customerservice</mark> <mark>#bankingsupport</mark> <mark>#uae</mark> <mark>#helpneeded</mark> first abu dhabi bank (fab)</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>i would like to bring to the attention of first abu dhabi bank regarding an issue i’ve been facing while trying to close my bank account.</li><li>#fab #customerservice #bankingsupport #uae #helpneeded first abu dhabi bank (fab)</li><li>however, a friend of mine visited a fab branch in dubai on my behalf and was advised that the request must be completed online or via email.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 1</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+       
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/activity-7447656502066077696-5F2Y?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAABs09r4BuVySre7W6Nsx80Mjly2zKtSu_JM" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+    <h2 class='section'>Part 4: Most Engaged Posts</h2>
+
+    <h3 class="bank-head">Emirates NBD Bank (ENBD)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Emirates NBD</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>the session highlighted our proactive approach to supporting businesses, delivering tailored financial solutions, and enabling operational resilience across industries.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 127</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 Reposts: 10</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/emirates-nbd_emirates-nbd-and-dubai-chamber-of-commerce-activity-7447685360803069952-JT0N?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAACB8EEgBvo4gTi9INeBXV_R6aanhBVcWAiA" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Emirates NBD</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>free services for your convenience.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 30</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 10</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/emirates-nbd_free-services-for-your-convenience-activity-7447666826479771649-Q45F?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAACB8EEgBvo4gTi9INeBXV_R6aanhBVcWAiA" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Emirates NBD</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>invest in fractional bonds and sukuk starting from just usd 5,000 through enbd x.</li><li>lower minimum investment, portfolio diversification, access to global issuances and seamless execution on one platform.</li><li>access fixed income opportunities without the high entry barrier.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 21</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 5</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/emirates-nbd_fractional-bonds-activity-7447599242208137216-M84V?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAACB8EEgBvo4gTi9INeBXV_R6aanhBVcWAiA" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Carl Gough ✨</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>i arrived to dubai in december - gave up my life in sydney after 26 years there, to move here then had to decide what to do once the war started.</li><li>when leaders care for their people, the people care for the leaders.</li><li>deep deep deep respect for everyone who kept us safe.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 215</div>
+        <div class="chip">💬 Comments: 20</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/meetmagic_i-arrived-to-dubai-in-december-gave-up-activity-7447674876485869569-UpPT?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAGC_s_4BWWtqdz1LWdw3NGQuK0SMhphgcyI" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> BNP Paribas CIB</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>bnp paribas has supported emirates nbd on the closing of a usd1.75 billion five-year sustainability-linked syndicated term loan facility.</li><li>omar lazrak waqar ahmed, mba shahed dashti leroy knowles alberto masoero rita caria raoul hessling may hawkings matthew dearden</li><li>the transaction attracted demand from a global investor base, with a more than 2x oversubscription rate.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 211</div>
+        <div class="chip">💬 Comments: 2</div>
+        <div class="chip">🔁 Reposts: 8</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/bnpparibascorporateandinstitutionalbanking_bnp-paribas-has-supported-emirates-nbd-on-activity-7447629384267575297-EBsh?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAF5v8OUBcWJn66Xf9NU-T4oDdCEcSborCS8" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Sobha Realty</div>
+          <div class="bank"><b>Bank Name:</b> Emirates NBD Bank (ENBD)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>sobha realty and emirates nbd come together to mark the beginning of a strategic collaboration — one that brings together expertise, shared ambition, and a commitment to doing things differently.</li><li>captured here: the signing of an agreement that reinforces our focus on building not just exceptional homes, but a more considered and seamless journey around them.</li><li>marwan hadi, group head of retail banking &amp; wealth management at emirates nbd.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 90</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Reposts: 4</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/sobharealty_sobharealty-theartofdetail-dubairealestate-activity-7447899687539523584-qA14?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAClCx0UBPKDAbVB2bvEMKXTVwEK2jkcUKnA" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+
+    <h3 class="bank-head">Emirates Islamic Bank (EIB)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Emirates Islamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>لمعرفة المزيد عن حساب التوفير الإلكتروني من الإمارات الإسلامي يرجى زيارة</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 4</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/emirates-islamic-bank_%D8%AD%D8%B3%D8%A7%D8%A8-%D8%A7%D9%84%D8%AA%D9%88%D9%81%D9%8A%D8%B1-%D8%A7%D9%84%D8%A5%D9%84%D9%83%D8%AA%D8%B1%D9%88%D9%86%D9%8A-activity-7447615540761645057-_c95?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADbv8eoBaFxPWU-YszGJAg5mUobylcHVGGY" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Emirates Islamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>from long-term growth to steady income, each option plays a role in shaping your financial journey.</li><li>understanding the different ways money can grow helps bring clarity and confidence over time.</li><li>#financialwellbeing #emiratesislamic #investing #smartplanning #moneyawareness to know more:</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 2</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/emirates-islamic-bank_financial-wellbeing-activity-7447886014133706752-n0HI?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADbv8eoBaFxPWU-YszGJAg5mUobylcHVGGY" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Emirates Islamic</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>الاستثمار لا يجب أن يكون معقّدًا.</li><li>فهم الخيارات المختلفة يساعد على بناء وضوح وثقة أكبر مع مرور الوقت.</li><li>من النمو على المدى الطويل إلى الدخل المستقر، لكل خيار دوره في رحلتك المالية.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 1</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/emirates-islamic-bank_%D8%A7%D9%84%D9%88%D8%B9%D9%8A-%D8%A7%D9%84%D9%85%D8%A7%D9%84%D9%8A-activity-7447886014238380033-qgyO?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADbv8eoBaFxPWU-YszGJAg5mUobylcHVGGY" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ahmed Hesham</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>emirates islamic keep surprising me was having current salary account which closed long time back and still active moreo…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 6</div>
+        <div class="chip">💬 Comments: 4</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/ahmed-hesham-a721ba88_emirates-islamic-keep-surprising-me-was-having-activity-7447599682668883968-mdZj?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAAZHa_MBjyPSifUwtJTumM7WvyEQp1ka14g" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ripon Sinha (PMP)®</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>emirates islamic disappointed and frustrated with the repeated aed 25 deductions from my bank account — four times without any clear justification.</li><li>despite raising a complaint, the explanation provided over the phone was not satisfactory, and the process of getting a refund back seems unnecessarily difficult.</li><li>repeated unwanted deductions without proper clarity can seriously impact customer confidence.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neg">Negative</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 3</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/ripon-sinha-pmp-%C2%AE-4ab5b7162_customerservice-bankingissues-transparency-activity-7447596672425209857-oMFb?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAAZHa_MBjyPSifUwtJTumM7WvyEQp1ka14g" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ahmed elsayed khafagy</div>
+          <div class="bank"><b>Bank Name:</b> Emirates Islamic Bank (EIB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>‏ أنا متاح للتواصل بشأن الوظائف في ‏united arab emirates و emea‏.</li><li>‏ لقد عملتُ سابقًا في ‏dubai islamic bank‏.</li><li>#opentowork معلومات حولي وحول ما أبحث عنه: ‏ أبحث عن وظائف ‏‏مساعد إداري، مدير مُساعد، و مُساعد تنفيذي‏‏.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 0</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/ahmed-elsayed-khafagy-82b89085_opentowork-activity-7447934808091172865-MRXQ?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAAZHa_MBjyPSifUwtJTumM7WvyEQp1ka14g" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+
+    <h3 class="bank-head">First Abu Dhabi Bank (FAB)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        <div class='muted'>No Posts By Bank top posts.</div>
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Madhuri Munjwani</div>
+          <div class="bank"><b>Bank Name:</b> First Abu Dhabi Bank (FAB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>honored and grateful to receive the fab gceo hi-five - february 2026 recognition.</li><li>grateful to be part of such an inspiring organization and team at first abu dhabi bank #grateful #fab #hifive #proudmoment</li><li>this recognition truly motivates me to continue owning the moment, contributing with purpose, and delivering my best every day.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 238</div>
+        <div class="chip">💬 Comments: 36</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/madhuri-munjwani-31924919_grateful-fab-hifive-activity-7447604372072632322-Gh8b?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAB4UrwMBSwmrfijpYieR5KghCZqDGapaAw4" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Karan Tulsani</div>
+          <div class="bank"><b>Bank Name:</b> First Abu Dhabi Bank (FAB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>this is what happens when a visionary customer, a world-class oracle platform, and a partner obsessed with outcomes come together.</li><li>every sprint delivered something real, something measurable, something the business could feel.</li><li>and we wove ai adoption into each sprint from day one - not as an afterthought, but as a core part of how fab&#x27;s teams would actually work.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 25</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/karan-tulsani-26252850_first-abu-dhabi-bank-speeds-up-hr-tasks-with-activity-7447899351831703552-qKFK?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAD5xb0cBcXcywU3CieSEYi_FFKJPpkOt-DU" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> mostafa Abdo</div>
+          <div class="bank"><b>Bank Name:</b> First Abu Dhabi Bank (FAB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>national bank of egypt (nbe) banque misr cib egypt capital limited orange qnb egypt dubizzle egypt first abu dhabi bank (fab)</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 22</div>
+        <div class="chip">💬 Comments: 5</div>
+        <div class="chip">🔁 Reposts: 3</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/mostafa-abdo-601316352_%D8%B3%D9%84%D8%A7%D9%85-%D8%B9%D9%84%D9%8A%D9%83%D9%85-%D8%A7%D9%86%D8%A7-%D9%85%D8%B5%D8%B7%D9%81%D9%89-%D8%B9%D8%A8%D8%AF%D8%A7%D9%84%D8%B9%D8%B2%D9%8A%D8%B2-%D9%85%D8%AD%D9%85%D8%AF-%D9%85%D9%86-%D9%85%D8%AF%D9%8A%D9%86%D9%87-activity-7447652070293454849-4oU7?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAABs09r4BuVySre7W6Nsx80Mjly2zKtSu_JM" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+
+    <h3 class="bank-head">Abu Dhabi Commercial Bank (ADCB)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Abu Dhabi Commercial Bank</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Commercial Bank (ADCB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>the uae is beautiful the uae leads with vision the uae is prosperous may god protect the uae</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 188</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Reposts: 15</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/adcbofficial_the-uae-is-beautiful-the-uae-leads-with-vision-activity-7447633096335745025-uC_D?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADxeUlUBCd9hAkKTauhprPVFe0x_J25JAyE" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Abu Dhabi Commercial Bank</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Commercial Bank (ADCB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>الإمارات جميلة. الإمارات قدوة. الإمارات بخير. الله يحفظ الإمارات.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 25</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 2</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/adcbofficial_%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA-%D8%AC%D9%85%D9%8A%D9%84%D8%A9-%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA-%D9%82%D8%AF%D9%88%D8%A9-%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA-activity-7447633177327890432-O5xY?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADxeUlUBCd9hAkKTauhprPVFe0x_J25JAyE" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Abu Dhabi Commercial Bank</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Commercial Bank (ADCB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>‎نقدّم “باقة فخر الإمارات” لأبطال خط الدفاع الأول في دو الإمارات العربية المتحدة، تقديرًا لعطائكم المستمر وخدمتكم لمجتمع…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 16</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/adcbofficial_%D8%A8%D8%A7%D9%82%D8%A9-%D9%81%D8%AE%D8%B1-%D8%A7%D9%84%D8%A5%D9%85%D8%A7%D8%B1%D8%A7%D8%AA-activity-7447720450190733312-sKck?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADxeUlUBCd9hAkKTauhprPVFe0x_J25JAyE" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Mohammad Saad</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Commercial Bank (ADCB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>i am incredibly grateful to the leadership team and my colleagues for their support and for providing me with this opportunity to grow within the organization ( adcb bank ).</li><li>i’m excited to share that i’ve been promoted to virtual relationship manager(vrm) business banking (sme).</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 6</div>
+        <div class="chip">💬 Comments: 3</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/mohammad-saad-7aa2021b1_im-excited-to-share-that-ive-been-promoted-activity-7447883546389626881-uQNU?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADzoKcQBgvVxEtgTp616StYABJvYyT5IbUY" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Manikandan Sundaram PMP PSM CSPO</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Commercial Bank (ADCB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>gcc banking tech roundup — edition #270 | 09 apr 2026 your crisp daily roundup of top banking-tech developments across the gcc — focused on innovation, ai, and financial transformation.</li><li>big picture: ai-led innovation across onboarding, risk, fraud, and personalization continues to redefine gcc banking into a more agile, secure, and customer-centric ecosystem.</li><li>ksa – alinma: expands its digital banking ecosystem with enhanced api integrations to support fintech partnerships and open banking use cases.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 4</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/manikandansundarampmp_gccbanking-aibanking-digitaltransformation-activity-7447836808198955008-WFXU?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAACwL4AsBEDKnng8xPUFFZg9Y9wVeFJyC4Oc" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Alanoud Alobeidli</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Commercial Bank (ADCB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>لقد عملتُ سابقًا في abu dhabi commercial bank ,rotana hotel management corporation , majid al futtaim compan ,</li><li>أنا متاح للتواصل بشأن الوظائف في abu dhabi.</li><li>#opentowork معلومات حولي وحول ما أبحث عنه: أبحث عن وظائف، specialist، و officer.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 1</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/alanoud-alobeidli-471886212_opentowork-activity-7447754610196549632-AZ96?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAACwL4AsBEDKnng8xPUFFZg9Y9wVeFJyC4Oc" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+
+    <h3 class="bank-head">Abu Dhabi Islamic Bank (ADIB)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> ADIB - Abu Dhabi Islamic Bank</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Islamic Bank (ADIB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>reporting directly to the group chief executive officer, hakim will be responsible for leading adib’s group-wide wholesale banking business.</li><li>he will oversee the continued development of the bank’s corporate and institutional banking offering, with a focus on delivering integrated solutions that support clients across key sectors.</li><li>hakim brings over 27 years of experience in financial services and banking, with a strong track record across the mena region and international markets.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 159</div>
+        <div class="chip">💬 Comments: 17</div>
+        <div class="chip">🔁 Reposts: 1</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/abu-dhabi-islamic-bank_adib-has-announced-the-appointment-of-hakim-activity-7447868141491404801-3yOW?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAGNYwmMBHH05CVFu0KpJR4gGCaJ72HAoAEU" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Shaimaa Atef</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Islamic Bank (ADIB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>لو سمحت محتاجة دعمكم عاوزة شغل ف اقرب وقت ممكن لو حد يقدر يوصلني مباشر لقسم التعيين ف اي بنك او شركة ف القاهرة واقدملهم السي ڤي بتاعي اكون شاكرة انا اشتغلت تيلر سنتين وسيبت شغلي لظروف خاصة.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 28</div>
+        <div class="chip">💬 Comments: 7</div>
+        <div class="chip">🔁 Reposts: 4</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/shaimaa-atef-83a02b402_%D9%84%D9%88-%D8%B3%D9%85%D8%AD%D8%AA-%D9%85%D8%AD%D8%AA%D8%A7%D8%AC%D8%A9-%D8%AF%D8%B9%D9%85%D9%83%D9%85-%D8%B9%D8%A7%D9%88%D8%B2%D8%A9-%D8%B4%D8%BA%D9%84-%D9%81-%D8%A7%D9%82%D8%B1%D8%A8-%D9%88%D9%82%D8%AA-activity-7447914305594789888-i5PJ?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAADj1ueABCcKZHBvrV_Cz8wmoANYgUMfTwLE" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Eslam Ragab</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Islamic Bank (ADIB)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>مساء الخير. انا إسلام عندي 28 سنه اشتغلت فى شركه xceed دعم فني واشتغلت كادراي فى عدد من الانديه وعندي خبره كويسه فى الاد…</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 28</div>
+        <div class="chip">💬 Comments: 9</div>
+        <div class="chip">🔁 Reposts: 2</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/eslam-ragab-2b197333b_%D9%85%D8%B3%D8%A7%D8%A1-%D8%A7%D9%84%D8%AE%D9%8A%D8%B1-%D8%A7%D9%86%D8%A7-%D8%A5%D8%B3%D9%84%D8%A7%D9%85-%D8%B9%D9%86%D8%AF%D9%8A-28-%D8%B3%D9%86%D9%87-%D8%A7%D8%B4%D8%AA%D8%BA%D9%84%D8%AA-activity-7447747945229271040-Eqh4?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAABeLJ0cBRf9qmMzK70WZ_-qpueVG43towVA" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Ayman sayed</div>
+          <div class="bank"><b>Bank Name:</b> Abu Dhabi Islamic Bank (ADIB)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>مساء الخير أنا ايمن سيد خريج ومعايا بكالريوس تجارة قسم محاسبة بدور علي شغل ف مجال المحاسبة والبنوك خريج دفعة 2023 بقدر اشتغل تحت الضغط واقدر أتعامل مع العملاء بطريقة لطيفه.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 16</div>
+        <div class="chip">💬 Comments: 8</div>
+        <div class="chip">🔁 Reposts: 2</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/ayman-sayed-405142261_%D9%85%D8%B3%D8%A7%D8%A1-%D8%A7%D9%84%D8%AE%D9%8A%D8%B1-%D8%A3%D9%86%D8%A7-%D8%A7%D9%8A%D9%85%D9%86-%D8%B3%D9%8A%D8%AF-%D8%AE%D8%B1%D9%8A%D8%AC-%D9%88%D9%85%D8%B9%D8%A7%D9%8A%D8%A7-%D8%A8%D9%83%D8%A7%D9%84%D8%B1%D9%8A%D9%88%D8%B3-activity-7447598983587237889-UXfm?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAABeLJ0cBRf9qmMzK70WZ_-qpueVG43towVA" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+
+    <h3 class="bank-head">Commercial Bank of Dubai (CBD)</h3>
+    <div class="grid">
+      <div>
+        <h4> Posts by Bank</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Commercial Bank of Dubai</div>
+          <div class="bank"><b>Bank Name:</b> Commercial Bank of Dubai (CBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>start today by reviewing your financial position and take a confident step toward a more secure future الاقتراض الذكي يقوم على الوعي و التخطيط و الانضباط.</li><li>make informed decisions that strengthen your financial stability and support your long-term goals.</li><li>smart borrowing is about awareness, careful planning, and discipline.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 13</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/commercial-bank-of-dubai_cbduae-aeqaeuaerabraexaeqaeyabraepaesaesaeuaepaezaey-activity-7447627704125837314-JC0q?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAFaMtcsB24k3hpCB3p-Lfr_ar_DmZeGQ4bk" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+      <div>
+        <h4> Posts by Customer</h4>
+        
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> MENA Leadership Spotlights</div>
+          <div class="bank"><b>Bank Name:</b> Commercial Bank of Dubai (CBD)</div>
+          <div class="date"><b>Post Date:</b> 09-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>in the world of corporate banking and treasury, true leadership is defined by the ability to navigate complex financial markets, optimize liquidity, and drive strategic growth across borders.</li><li>he brings deep expertise in corporate finance, treasury strategy at the group level, large corporate relationship management, and cross-border financial solutions.</li><li>this is three decades of executive excellence shaping the future of corporate banking and treasury leadership in the mena s.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-neu">Neutral</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 53</div>
+        <div class="chip">💬 Comments: 21</div>
+        <div class="chip">🔁 Reposts: 11</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/mena-leadership-spotlights_doha-treasurymanagement-corporatebanking-activity-7447902847309893632-0NlQ?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAEpL_c4Bg9eunimDzYTl-fGDJEG9oOc_G3o" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Vishnu Viswanath</div>
+          <div class="bank"><b>Bank Name:</b> Commercial Bank of Dubai (CBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>i’m happy to share that i have joined commercial bank of dubai as a sales officer – sme.</li><li>i will be focusing on business account opening and supporting clients with a smooth and efficient process.</li><li>looking forward to this new journey.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 20</div>
+        <div class="chip">💬 Comments: 1</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/activity-7447602771471761408-MzbR?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAEpL_c4Bg9eunimDzYTl-fGDJEG9oOc_G3o" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+
+    <div class="post">
+      <div class="head">
+        <div class="meta">
+          <div class="name"><b>Author Name:</b> Jamie Graham</div>
+          <div class="bank"><b>Bank Name:</b> Commercial Bank of Dubai (CBD)</div>
+          <div class="date"><b>Post Date:</b> 08-04-2026</div>
+          <div class="hl-title">Key highlights of Post</div>
+          <ul class='highlights'><li>at globant we truly proud to be part of the transformation and to see commercial bank of dubai continuing to raise the bar for digital banking across the region.</li><li>huge congratulations to the entire team at commercial bank of dubai on the outstanding transformation and uplift of the retail proposition.</li><li>the new interface powerfully reflects a modern, customer-centric bank, seamlessly balancing intuitive journeys with a premium and confident brand presence.</li></ul>
+
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge badge-pos">Positive</span>
+        <span class="tag">Posts by Customer</span>
+      </div>
+      <div class="stats">
+        <div class="chip">👍 Likes: 5</div>
+        <div class="chip">💬 Comments: 0</div>
+        <div class="chip">🔁 Reposts: 0</div>
+      </div>
+        
+        <div class="post-link">
+          <a href="https://www.linkedin.com/posts/jamie-graham-3a947b10b_commercial-bank-of-dubai-app-just-got-better-activity-7447670517743960066-tf1P?utm_source=combined_share_message&amp;utm_medium=member_desktop&amp;rcm=ACoAAEpL_c4Bg9eunimDzYTl-fGDJEG9oOc_G3o" target="_blank" rel="noopener noreferrer">
+            🔗 Open LinkedIn post
+          </a>
+        </div>
+        
+    </div>
+    
+      </div>
+    </div>
+    <div class="hr"></div>
+    
+  </div>
+</body>
+</html>
