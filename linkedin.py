@@ -352,6 +352,8 @@ try:
 except Exception:
     key = os.getenv("OPENAI_API_KEY_linkedin")
 
+client = OpenAI(api_key=key )
+
 
 
 # In[23]:
@@ -497,7 +499,7 @@ import os
 # In[31]:
 
 
-_USE_GENAI = bool(os.getenv(key))
+_USE_GENAI = bool(key)
 if _USE_GENAI:
     try:
         from openai import OpenAI
