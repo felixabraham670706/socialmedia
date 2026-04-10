@@ -51,31 +51,31 @@ if page == "Home":
     Welcome to the unified analytics dashboard.
 
     This platform integrates:
-    - 🐦 Twitter sentiment & engagement
-    - 💼 LinkedIn insights (coming/active)
+    -  Twitter sentiment & engagement
+    -  LinkedIn sentiment & engagement
 
     Use the sidebar to navigate between dashboards.
     """)
 
 # ---------------- TWITTER ----------------
 elif page == "Twitter":
-    st.title("🐦 Twitter Dashboard")
+    #st.title("🐦 Twitter Dashboard")
 
     file_path = "X-post_analysis.html"
 
     last_updated = get_last_updated(file_path)
-    st.caption(f"Last updated: {last_updated} (Dubai Time)")
+    #st.caption(f"Last updated: {last_updated} (Dubai Time)")
 
     render_html(file_path)
 
 # ---------------- LINKEDIN ----------------
 elif page == "LinkedIn":
-    st.title("💼 LinkedIn Dashboard")
+    #st.title("💼 LinkedIn Dashboard")
 
     file_path = "linkedin_post_analysis.html"
 
     last_updated = get_last_updated(file_path)
-    st.caption(f"Last updated: {last_updated} (Dubai Time)")
+    #st.caption(f"Last updated: {last_updated} (Dubai Time)")
 
     render_html(file_path)
 
