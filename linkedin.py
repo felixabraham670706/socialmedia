@@ -1976,7 +1976,11 @@ html_doc = f"""<!DOCTYPE html>
 with open(OUT_PATH, "w", encoding="utf-8") as f:
     f.write(html_doc)
 
+dubai_tz = pytz.timezone("Asia/Dubai")
+date_str = datetime.now(dubai_tz).strftime("%d%b%Y").upper()
 
+with open(f"linkedin_post_analysis_{date_str}.html", "w", encoding="utf-8") as f:
+    f.write(html_doc)
 # In[124]:
 
 
