@@ -1202,7 +1202,7 @@ missing = [k for k in part1_cols.keys() if k not in summary_df.columns]
 if missing:
     raise ValueError(f"`summary` missing columns: {missing}")
 summary_tbl = summary_df[list(part1_cols.keys())].rename(columns=part1_cols)
-
+summary_tbl=summary_tbl[summary_tbl['Posts By Bank']>0]
 
 # In[97]:
 
@@ -1252,6 +1252,21 @@ missing = [k for k in part1_cols.keys() if k not in summary_df.columns]
 if missing:
     raise ValueError(f"`summary` missing columns: {missing}")
 summary_tbl_2 = summary_df[list(part2_cols.keys())].rename(columns=part2_cols)
+# Bank-wise contact number mapping
+contact_map = {
+    "Emirates NBD Bank (ENBD)": 1416206.0,
+    "Emirates Islamic Bank (EIB)": 384135.0,
+    "First Abu Dhabi Bank (FAB)": 1147547.0,
+    "Abu Dhabi Commercial Bank (ADCB)": 634691.0,
+    "Abu Dhabi Islamic Bank (ADIB)": 655738.0,
+    "Commercial Bank of Dubai (CBD)": 296000.0
+}
+
+# Replace NaN with mapped contact numbers
+summary_tbl_2["Number of Followers"] = summary_tbl_2["Number of Followers"].fillna(
+    summary_tbl_2["Bank Name"].map(contact_map)
+)
+
 
 
 # In[101]:
